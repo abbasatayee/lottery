@@ -94,9 +94,9 @@ export const requestGeolocationPermission =
           reject(new Error(errorMessage));
         },
         {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 0,
+          enableHighAccuracy: true, // Force GPS usage
+          timeout: 60000, // 60 seconds for GPS
+          maximumAge: 0, // Always get fresh GPS data
         }
       );
     });
@@ -110,6 +110,7 @@ export const getPermissionInstructions = (
       "مرورگر شما از GPS پشتیبانی نمی‌کند",
       "لطفاً از مرورگر دیگری استفاده کنید",
       "Chrome، Firefox یا Safari را امتحان کنید",
+      "مطمئن شوید که GPS دستگاه فعال است",
     ];
   }
 
@@ -128,6 +129,7 @@ export const getPermissionInstructions = (
       "مطمئن شوید که GPS دستگاه شما فعال است",
       "برای دقت بهتر، در فضای باز باشید",
       "VPN را غیرفعال کنید",
+      "برای سیگنال بهتر، به فضای باز بروید",
     ];
   }
 

@@ -92,14 +92,32 @@ export const useLocation = (): LocationHookReturn => {
         );
       }
 
-      // Get current position - this will trigger the browser permission popup
-      const position = await requestGeolocationPermission();
+      // Request high-accuracy GPS location specifically
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          if (
+            !navigator.geolocation ||
+            !navigator.geolocation.getCurrentPosition
+          ) {
+            reject(new Error("مرورگر شما از GPS پشتیبانی نمی‌کند"));
+            return;
+          }
 
-      // Get location data regardless of accuracy first
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, // Force GPS usage
+            timeout: 60000, // 60 seconds timeout for GPS
+            maximumAge: 0, // Always get fresh GPS data
+          });
+        }
+      );
+
+      // Validate GPS accuracy
       const accuracy = position.coords.accuracy;
       const accuracyLevel: "high" | "medium" | "low" =
-        accuracy <= 10 ? "high" : accuracy <= 100 ? "medium" : "low";
-      const isGPS = accuracy <= 100; // GPS typically has accuracy <= 100m
+        accuracy <= 10 ? "high" : accuracy <= 50 ? "medium" : "low";
+
+      // Stricter GPS validation - must be very accurate
+      const isGPS = accuracy <= 50; // GPS should be more accurate than 50m
 
       const locationData = {
         latitude: position.coords.latitude,
@@ -114,10 +132,10 @@ export const useLocation = (): LocationHookReturn => {
       setLocation(locationData);
       setHasPermission(true);
 
-      // Check if it's likely VPN/proxy location
+      // Check if it's likely VPN/proxy location (low accuracy)
       if (!isGPS) {
         setError(
-          "ممکن است از VPN استفاده کنید. برای ادامه، لطفاً VPN را غیرفعال کنید."
+          "GPS دقیق یافت نشد. لطفاً مطمئن شوید که GPS دستگاه فعال است و در فضای باز هستید."
         );
         // Don't return here - let the user see their location and decide
       }
@@ -150,9 +168,9 @@ export const useLocation = (): LocationHookReturn => {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const accuracy = position.coords.accuracy;
-        const isGPS = accuracy <= 100;
+        const isGPS = accuracy <= 50; // Same strict GPS validation
         const accuracyLevel: "high" | "medium" | "low" =
-          accuracy <= 10 ? "high" : accuracy <= 100 ? "medium" : "low";
+          accuracy <= 10 ? "high" : accuracy <= 50 ? "medium" : "low";
 
         const locationData = {
           latitude: position.coords.latitude,
@@ -176,8 +194,8 @@ export const useLocation = (): LocationHookReturn => {
         }
       },
       {
-        enableHighAccuracy: true,
-        timeout: 30000, // Increased timeout for GPS
+        enableHighAccuracy: true, // Force GPS usage
+        timeout: 60000, // 60 seconds timeout for GPS
         maximumAge: 0, // Always get fresh GPS data
       }
     );
@@ -189,10 +207,10 @@ export const useLocation = (): LocationHookReturn => {
       return getPermissionInstructions(permissionStatus);
     } catch (error) {
       return [
-        "VPN را غیرفعال کنید",
-        "مطمئن شوید که GPS فعال است",
-        "وقتی درخواست شد، اجازه دهید",
+        "مطمئن شوید که GPS دستگاه فعال است",
         "برای سیگنال بهتر، به فضای باز بروید",
+        "وقتی درخواست شد، اجازه دهید",
+        "VPN را غیرفعال کنید",
         "مرورگر خود را بررسی کنید",
       ];
     }
