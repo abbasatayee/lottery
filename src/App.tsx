@@ -160,6 +160,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LotteryApp />} />
       <Route path="/admin" element={<AdminLayout />} />
+      <Route path="*" element={<LotteryApp />} />
     </Routes>
   );
 }
