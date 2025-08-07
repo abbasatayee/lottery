@@ -52,7 +52,6 @@ function App() {
         console.error("Error loading location tips:", error);
         setLocationTips([
           "VPN را غیرفعال کنید",
-          "مطمئن شوید که GPS فعال است",
           "وقتی درخواست شد، اجازه دهید",
           "برای سیگنال بهتر، به فضای باز بروید",
           "مرورگر خود را بررسی کنید",
