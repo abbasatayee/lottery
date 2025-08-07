@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 interface VPNCheckResult {
   isVPN: boolean;
@@ -25,18 +25,22 @@ export const useVPN = (): VPNHookReturn => {
 
   useEffect(() => {
     // Initialize Web Worker
-    workerRef.current = new Worker('/location-worker.js');
-    
+    workerRef.current = new Worker("/location-worker.js");
+
     workerRef.current.onmessage = (event) => {
       const { type, vpnDetected, locationData, error } = event.data;
-      
-      if (type === 'VPN_CHECK_RESULT') {
+
+      console.log("Worker message received:", type, event.data);
+
+      if (type === "VPN_CHECK_RESULT") {
+        console.log("VPN check result:", { vpnDetected, locationData });
         setVpnStatus({
           isVPN: vpnDetected,
-          locationData: locationData || {}
+          locationData: locationData || {},
         });
         setChecking(false);
-      } else if (type === 'VPN_CHECK_ERROR') {
+      } else if (type === "VPN_CHECK_ERROR") {
+        console.error("VPN check error from worker:", error);
         setError(error);
         setChecking(false);
       }
@@ -51,14 +55,21 @@ export const useVPN = (): VPNHookReturn => {
 
   const getUserIP = async (): Promise<string> => {
     try {
-      const response = await fetch('https://api.ipify.org?format=json');
+      const response = await fetch("https://api.ipify.org?format=json");
       const data = await response.json();
+      console.log("IP detected:", data.ip);
       return data.ip;
     } catch (error) {
-      // Fallback IP detection
-      const response = await fetch('https://ipapi.co/json/');
-      const data = await response.json();
-      return data.ip;
+      console.log("Primary IP detection failed, trying fallback...");
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        const data = await response.json();
+        console.log("Fallback IP detected:", data.ip);
+        return data.ip;
+      } catch (fallbackError) {
+        console.error("All IP detection methods failed");
+        throw new Error("Unable to detect IP address");
+      }
     }
   };
 
@@ -68,15 +79,30 @@ export const useVPN = (): VPNHookReturn => {
 
     try {
       const userIP = await getUserIP();
-      
+      console.log("Checking VPN for IP:", userIP);
+
       if (workerRef.current) {
         workerRef.current.postMessage({
-          type: 'CHECK_VPN',
-          data: { ip: userIP }
+          type: "CHECK_VPN",
+          data: { ip: userIP },
         });
+
+        // Add timeout to prevent hanging
+        setTimeout(() => {
+          if (checking) {
+            console.log("VPN check timeout, setting error");
+            setError("VPN check timed out");
+            setChecking(false);
+          }
+        }, 15000); // 15 second timeout
+      } else {
+        throw new Error("Worker not initialized");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check VPN status');
+      console.error("VPN check failed:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to check VPN status"
+      );
       setChecking(false);
     }
   };
@@ -85,6 +111,6 @@ export const useVPN = (): VPNHookReturn => {
     vpnStatus,
     checking,
     error,
-    checkVPN
+    checkVPN,
   };
 };

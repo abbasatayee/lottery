@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { useLocation } from "./hooks/useLocation";
+import { useEffect, useState } from "react";
+
 import { useVPN } from "./hooks/useVPN";
-import LocationRequest from "./components/LocationRequest";
-import VPNDetection from "./components/VPNDetection";
+import { useLocation } from "./hooks/useLocation";
 import LotteryGame from "./components/LotteryGame";
+import VPNDetection from "./components/VPNDetection";
+import LocationRequest from "./components/LocationRequest";
 
 type AppState = "location-request" | "vpn-check" | "lottery-game";
 
@@ -36,6 +37,7 @@ function App() {
         })
         .catch((registrationError) => {
           console.log("SW registration failed: ", registrationError);
+          // Don't throw error, just log it
         });
     }
   }, []);
