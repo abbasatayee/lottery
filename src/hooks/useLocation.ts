@@ -12,6 +12,9 @@ interface LocationData {
   timestamp: number;
   isGPS?: boolean;
   accuracyLevel?: "high" | "medium" | "low";
+  altitude?: number | null;
+  heading?: number | null;
+  speed?: number | null;
 }
 
 interface LocationHookReturn {
@@ -92,50 +95,119 @@ export const useLocation = (): LocationHookReturn => {
         );
       }
 
-      // Request high-accuracy GPS location specifically
-      const position = await new Promise<GeolocationPosition>(
-        (resolve, reject) => {
-          if (
-            !navigator.geolocation ||
-            !navigator.geolocation.getCurrentPosition
-          ) {
-            reject(new Error("مرورگر شما از GPS پشتیبانی نمی‌کند"));
-            return;
+      // Request high-accuracy GPS location with retry mechanism
+      let position: GeolocationPosition | null = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts) {
+        try {
+          const currentPosition = await new Promise<GeolocationPosition>(
+            (resolve, reject) => {
+              if (
+                !navigator.geolocation ||
+                !navigator.geolocation.getCurrentPosition
+              ) {
+                reject(new Error("مرورگر شما از GPS پشتیبانی نمی‌کند"));
+                return;
+              }
+
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true, // Force GPS usage
+                timeout: 60000, // 60 seconds timeout for GPS
+                maximumAge: 0, // Always get fresh GPS data
+              });
+            }
+          );
+
+          // Check if we got GPS data (not network-based)
+          const accuracy = currentPosition.coords.accuracy;
+          const altitude = currentPosition.coords.altitude;
+          const heading = currentPosition.coords.heading;
+          const speed = currentPosition.coords.speed;
+
+          const hasHighAccuracy = accuracy <= 20;
+          const hasAltitude = altitude !== null && altitude !== undefined;
+          const hasHeading = heading !== null && heading !== undefined;
+          const hasSpeed = speed !== null && speed !== undefined;
+
+          const isLikelyGPS =
+            hasHighAccuracy || (hasAltitude && hasHeading && hasSpeed);
+
+          // Assign position
+          position = currentPosition;
+
+          // If we got GPS data, break out of retry loop
+          if (isLikelyGPS) {
+            break;
           }
 
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, // Force GPS usage
-            timeout: 60000, // 60 seconds timeout for GPS
-            maximumAge: 0, // Always get fresh GPS data
-          });
-        }
-      );
+          // If this is the last attempt, use the position anyway
+          if (attempts === maxAttempts - 1) {
+            break;
+          }
 
-      // Validate GPS accuracy
+          // Otherwise, retry for better GPS signal
+          attempts++;
+          console.log(
+            `Attempt ${attempts}: Got network-based location, retrying for GPS...`
+          );
+        } catch (error) {
+          attempts++;
+          if (attempts >= maxAttempts) {
+            throw error;
+          }
+          console.log(`Attempt ${attempts}: GPS error, retrying...`);
+        }
+      }
+
+      // Enhanced GPS validation with multiple checks
+      if (!position) {
+        throw new Error("خطا در دریافت موقعیت GPS");
+      }
+
       const accuracy = position.coords.accuracy;
+      const altitude = position.coords.altitude;
+      const heading = position.coords.heading;
+      const speed = position.coords.speed;
+
+      // Multiple GPS indicators
+      const hasHighAccuracy = accuracy <= 20; // Very accurate
+      const hasAltitude = altitude !== null && altitude !== undefined;
+      const hasHeading = heading !== null && heading !== undefined;
+      const hasSpeed = speed !== null && speed !== undefined;
+
+      // Network-based locations typically have:
+      // - High accuracy values (> 100m)
+      // - No altitude data
+      // - No heading data
+      // - No speed data
+      const isLikelyGPS =
+        hasHighAccuracy || (hasAltitude && hasHeading && hasSpeed);
+
       const accuracyLevel: "high" | "medium" | "low" =
         accuracy <= 10 ? "high" : accuracy <= 50 ? "medium" : "low";
-
-      // Stricter GPS validation - must be very accurate
-      const isGPS = accuracy <= 50; // GPS should be more accurate than 50m
 
       const locationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: accuracy,
         timestamp: position.timestamp,
-        isGPS,
+        isGPS: isLikelyGPS,
         accuracyLevel,
+        altitude,
+        heading,
+        speed,
       };
 
       // Set location data first
       setLocation(locationData);
       setHasPermission(true);
 
-      // Check if it's likely VPN/proxy location (low accuracy)
-      if (!isGPS) {
+      // Check if it's likely network-based location
+      if (!isLikelyGPS) {
         setError(
-          "GPS دقیق یافت نشد. لطفاً مطمئن شوید که GPS دستگاه فعال است و در فضای باز هستید."
+          "موقعیت شبکه تشخیص داده شد. لطفاً مطمئن شوید که GPS دستگاه فعال است، VPN را غیرفعال کنید و در فضای باز باشید."
         );
         // Don't return here - let the user see their location and decide
       }
@@ -168,7 +240,18 @@ export const useLocation = (): LocationHookReturn => {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const accuracy = position.coords.accuracy;
-        const isGPS = accuracy <= 50; // Same strict GPS validation
+        const altitude = position.coords.altitude;
+        const heading = position.coords.heading;
+        const speed = position.coords.speed;
+
+        // Same enhanced GPS detection logic
+        const hasHighAccuracy = accuracy <= 20;
+        const hasAltitude = altitude !== null && altitude !== undefined;
+        const hasHeading = heading !== null && heading !== undefined;
+        const hasSpeed = speed !== null && speed !== undefined;
+
+        const isLikelyGPS =
+          hasHighAccuracy || (hasAltitude && hasHeading && hasSpeed);
         const accuracyLevel: "high" | "medium" | "low" =
           accuracy <= 10 ? "high" : accuracy <= 50 ? "medium" : "low";
 
@@ -177,8 +260,11 @@ export const useLocation = (): LocationHookReturn => {
           longitude: position.coords.longitude,
           accuracy: accuracy,
           timestamp: position.timestamp,
-          isGPS,
+          isGPS: isLikelyGPS,
           accuracyLevel,
+          altitude,
+          heading,
+          speed,
         };
         setLocation(locationData);
       },
