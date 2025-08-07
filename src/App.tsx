@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 
 import { useVPN } from "./hooks/useVPN";
 import { useLocation } from "./hooks/useLocation";
@@ -6,6 +7,7 @@ import { useLocationAPI } from "./hooks/useLocationAPI";
 import LotteryGame from "./components/LotteryGame";
 import VPNDetection from "./components/VPNDetection";
 import LocationRequest from "./components/LocationRequest";
+import AdminLayout from "./components/AdminLayout";
 
 type AppState = "location-request" | "vpn-check" | "lottery-game";
 
@@ -108,48 +110,58 @@ function App() {
     await checkVPN();
   };
 
-  // Render based on current state
-  switch (appState) {
-    case "location-request":
-      return (
-        <LocationRequest
-          onRequestLocation={handleLocationRequest}
-          loading={locationLoading}
-          error={locationError}
-          locationTips={locationTips}
-        />
-      );
+  // Main lottery app component
+  const LotteryApp = () => {
+    // Render based on current state
+    switch (appState) {
+      case "location-request":
+        return (
+          <LocationRequest
+            onRequestLocation={handleLocationRequest}
+            loading={locationLoading}
+            error={locationError}
+            locationTips={locationTips}
+          />
+        );
 
-    case "vpn-check":
-      return (
-        <VPNDetection
-          onVPNCheck={handleVPNCheck}
-          checking={vpnChecking}
-          isVPN={vpnStatus?.isVPN ?? null}
-          error={vpnError}
-        />
-      );
+      case "vpn-check":
+        return (
+          <VPNDetection
+            onVPNCheck={handleVPNCheck}
+            checking={vpnChecking}
+            isVPN={vpnStatus?.isVPN ?? null}
+            error={vpnError}
+          />
+        );
 
-    case "lottery-game":
-      return (
-        <LotteryGame
-          location={location}
-          locationData={vpnStatus?.locationData ?? {}}
-          isWatching={isWatching}
-          apiStatus={locationAPI}
-        />
-      );
+      case "lottery-game":
+        return (
+          <LotteryGame
+            location={location}
+            locationData={vpnStatus?.locationData ?? {}}
+            isWatching={isWatching}
+            apiStatus={locationAPI}
+          />
+        );
 
-    default:
-      return (
-        <LocationRequest
-          onRequestLocation={handleLocationRequest}
-          loading={locationLoading}
-          error={locationError}
-          locationTips={locationTips}
-        />
-      );
-  }
+      default:
+        return (
+          <LocationRequest
+            onRequestLocation={handleLocationRequest}
+            loading={locationLoading}
+            error={locationError}
+            locationTips={locationTips}
+          />
+        );
+    }
+  };
+
+  return (
+    <Routes>
+      <Route path="/" element={<LotteryApp />} />
+      <Route path="/admin" element={<AdminLayout />} />
+    </Routes>
+  );
 }
 
 export default App;
