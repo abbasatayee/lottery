@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { useVPN } from "./hooks/useVPN";
 import { useLocation } from "./hooks/useLocation";
+import { useLocationAPI } from "./hooks/useLocationAPI";
 import LotteryGame from "./components/LotteryGame";
 import VPNDetection from "./components/VPNDetection";
 import LocationRequest from "./components/LocationRequest";
@@ -27,6 +28,9 @@ function App() {
     checkVPN,
   } = useVPN();
 
+  // Use the location API hook to send data every 5 seconds
+  const locationAPI = useLocationAPI(location, isWatching);
+
   // Register service worker
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -41,6 +45,19 @@ function App() {
         });
     }
   }, []);
+
+  // Log location API status
+  useEffect(() => {
+    if (locationAPI.isSending) {
+      console.log("Sending location data to API...");
+    }
+    if (locationAPI.lastSent) {
+      console.log("Location data sent at:", locationAPI.lastSent);
+    }
+    if (locationAPI.error) {
+      console.error("Location API error:", locationAPI.error);
+    }
+  }, [locationAPI.isSending, locationAPI.lastSent, locationAPI.error]);
 
   // Load location tips
   useEffect(() => {
@@ -119,6 +136,7 @@ function App() {
           location={location}
           locationData={vpnStatus?.locationData ?? {}}
           isWatching={isWatching}
+          apiStatus={locationAPI}
         />
       );
 

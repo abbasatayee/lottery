@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Star,
   Gift,
@@ -25,12 +25,18 @@ interface LotteryGameProps {
     region?: string;
   };
   isWatching: boolean;
+  apiStatus?: {
+    isSending: boolean;
+    lastSent: Date | null;
+    error: string | null;
+  };
 }
 
 const LotteryGame: React.FC<LotteryGameProps> = ({
   location,
   locationData,
   isWatching,
+  apiStatus,
 }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -132,9 +138,9 @@ const LotteryGame: React.FC<LotteryGameProps> = ({
 
       {/* Main Content with Top Padding for Navbar */}
       <div className="pt-20 pb-8 px-4">
-        {/* System Status Alert */}
-        {!isWatching && (
-          <div className="max-w-2xl mx-auto mb-6">
+        {/* System Status Alerts */}
+        <div className="max-w-2xl mx-auto mb-6 space-y-3">
+          {!isWatching && (
             <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm">
               <div className="flex items-center text-white">
                 <MapPin className="w-5 h-5 mr-2 text-red-400" />
@@ -146,8 +152,50 @@ const LotteryGame: React.FC<LotteryGameProps> = ({
                 برای ادامه بازی، لطفاً سیستم نظارت را فعال نگه دارید
               </p>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* API Status Indicator */}
+          {apiStatus && (
+            <div
+              className={`border rounded-xl p-4 backdrop-blur-sm ${
+                apiStatus.error
+                  ? "bg-red-500/20 border-red-500/30"
+                  : apiStatus.isSending
+                  ? "bg-yellow-500/20 border-yellow-500/30"
+                  : "bg-green-500/20 border-green-500/30"
+              }`}
+            >
+              <div className="flex items-center text-white">
+                <div
+                  className={`w-3 h-3 rounded-full mr-2 ${
+                    apiStatus.error
+                      ? "bg-red-400 animate-pulse"
+                      : apiStatus.isSending
+                      ? "bg-yellow-400 animate-pulse"
+                      : "bg-green-400"
+                  }`}
+                ></div>
+                <span className="font-medium text-right">
+                  {apiStatus.error
+                    ? "خطا در ارسال داده"
+                    : apiStatus.isSending
+                    ? "در حال ارسال داده..."
+                    : "داده با موفقیت ارسال شد"}
+                </span>
+              </div>
+              {apiStatus.lastSent && (
+                <p className="text-sm text-white/80 mt-1 text-right">
+                  آخرین ارسال: {apiStatus.lastSent.toLocaleTimeString("fa-IR")}
+                </p>
+              )}
+              {apiStatus.error && (
+                <p className="text-sm text-white/80 mt-1 text-right">
+                  {apiStatus.error}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Main Game Area */}
         <div className="max-w-2xl mx-auto">
@@ -196,7 +244,9 @@ const LotteryGame: React.FC<LotteryGameProps> = ({
             <div className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl shadow-2xl transform scale-105 transition-all duration-500">
               <div className="text-center text-white">
                 <Trophy className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 animate-bounce" />
-                <h3 className="text-xl sm:text-2xl font-bold mb-2 text-right">تبریک!</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2 text-right">
+                  تبریک!
+                </h3>
                 <p className="text-lg sm:text-xl text-right">
                   شما برنده <strong>{result}</strong> شدید!
                 </p>
