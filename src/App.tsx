@@ -37,7 +37,10 @@ function App() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register("/sw.js", {
+          scope: "/",
+          updateViaCache: "none",
+        })
         .then((registration) => {
           console.log("SW registered: ", registration);
         })
