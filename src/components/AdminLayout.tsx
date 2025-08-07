@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MapPin, Globe, Users, Clock, Database } from "lucide-react";
+import LocationMap from "./LocationMap";
 
 interface LocationData {
   id: number;
@@ -198,11 +199,11 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50"
+      className="h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col"
       dir="rtl"
     >
       {/* Header */}
-      <div className="bg-white shadow-lg border-b">
+      <div className="bg-white shadow-lg border-b flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4 space-x-reverse">
@@ -239,11 +240,11 @@ const AdminLayout: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* IP List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-full h-full flex">
+          {/* IP List Sidebar */}
+          <div className="w-80 bg-white shadow-lg border-l flex-shrink-0 overflow-y-auto">
+            <div className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Users className="h-5 w-5 ml-2 text-blue-600" />
                 آدرس‌های IP
@@ -286,139 +287,143 @@ const AdminLayout: React.FC = () => {
             </div>
           </div>
 
-          {/* Map and Details */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Globe className="h-5 w-5 ml-2 text-green-600" />
-                نقشه موقعیت‌ها
-              </h2>
+          {/* Map Area */}
+          <div className="flex-1 flex flex-col">
+            {/* Map Container */}
+            <div className="flex-1 relative">
+              <LocationMap
+                locations={groupedLocations.flatMap((group) => group.locations)}
+                selectedIP={selectedIP}
+                center={mapCenter}
+                onLocationClick={(location) => {
+                  // Find the IP for this location and select it
+                  const ipGroup = groupedLocations.find((group) =>
+                    group.locations.some((loc) => loc.id === location.id)
+                  );
+                  if (ipGroup) {
+                    setSelectedIP(ipGroup.ip_address);
+                  }
+                }}
+              />
+            </div>
 
-              {/* Map Placeholder */}
-              <div className="bg-gray-100 rounded-lg h-96 mb-6 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">نقشه تعاملی</p>
-                  <p className="text-sm text-gray-500">
-                    مرکز: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Selected IP Details */}
-              {selectedIP && (
-                <div className="border-t pt-6">
+            {/* Details Panel */}
+            {selectedIP && (
+              <div className="h-96 bg-white shadow-lg border-t overflow-y-auto">
+                <div className="p-6">
                   <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
                     <Clock className="h-4 w-4 ml-2 text-orange-600" />
                     جزئیات آدرس IP: {selectedIP}
                   </h3>
 
-                  {groupedLocations
-                    .find((group) => group.ip_address === selectedIP)
-                    ?.locations.map((location, index) => {
-                      const details = getLocationDetails(location);
-                      return (
-                        <div
-                          key={location.id}
-                          className="border rounded-lg p-4 mb-4 bg-gray-50"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                موقعیت #{index + 1}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {formatTimestamp(location.timestamp)}
-                              </p>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-sm text-gray-500">
-                                دقت: {location.accuracy}m
-                              </p>
-                              {location.speed && (
-                                <p className="text-sm text-gray-500">
-                                  سرعت: {location.speed} m/s
+                  <div className="space-y-4">
+                    {groupedLocations
+                      .find((group) => group.ip_address === selectedIP)
+                      ?.locations.map((location, index) => {
+                        const details = getLocationDetails(location);
+                        return (
+                          <div
+                            key={location.id}
+                            className="border rounded-lg p-4 bg-gray-50"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  موقعیت #{index + 1}
                                 </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-600">مختصات:</p>
-                              <p className="font-mono">
-                                {location.latitude}, {location.longitude}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600">منطقه زمانی:</p>
-                              <p>{location.timezone}</p>
-                            </div>
-                            {location.platform && (
-                              <div>
-                                <p className="text-gray-600">پلتفرم:</p>
-                                <p>{location.platform}</p>
+                                <p className="text-sm text-gray-600">
+                                  {formatTimestamp(location.timestamp)}
+                                </p>
                               </div>
-                            )}
-                            {location.vendor && (
-                              <div>
-                                <p className="text-gray-600">تولیدکننده:</p>
-                                <p>{location.vendor}</p>
-                              </div>
-                            )}
-                            {details.deviceMemory && (
-                              <div>
-                                <p className="text-gray-600">حافظه دستگاه:</p>
-                                <p>{details.deviceMemory} GB</p>
-                              </div>
-                            )}
-                            {details.hardwareConcurrency && (
-                              <div>
-                                <p className="text-gray-600">هسته‌های CPU:</p>
-                                <p>{details.hardwareConcurrency}</p>
-                              </div>
-                            )}
-                            {details.connectionType && (
-                              <div>
-                                <p className="text-gray-600">نوع اتصال:</p>
-                                <p>{details.connectionType}</p>
-                              </div>
-                            )}
-                            {details.effectiveType && (
-                              <div>
-                                <p className="text-gray-600">نوع مؤثر:</p>
-                                <p>{details.effectiveType}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {Object.keys(details.additionalData).length > 0 && (
-                            <div className="mt-4 pt-4 border-t">
-                              <p className="text-sm font-semibold text-gray-700 mb-2">
-                                اطلاعات اضافی:
-                              </p>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                {Object.entries(details.additionalData).map(
-                                  ([key, value]) => (
-                                    <div key={key}>
-                                      <span className="text-gray-600">
-                                        {key}:
-                                      </span>
-                                      <span className="mr-2">
-                                        {String(value)}
-                                      </span>
-                                    </div>
-                                  )
+                              <div className="text-left">
+                                <p className="text-sm text-gray-500">
+                                  دقت: {location.accuracy}m
+                                </p>
+                                {location.speed && (
+                                  <p className="text-sm text-gray-500">
+                                    سرعت: {location.speed} m/s
+                                  </p>
                                 )}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-gray-600">مختصات:</p>
+                                <p className="font-mono">
+                                  {location.latitude}, {location.longitude}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-gray-600">منطقه زمانی:</p>
+                                <p>{location.timezone}</p>
+                              </div>
+                              {location.platform && (
+                                <div>
+                                  <p className="text-gray-600">پلتفرم:</p>
+                                  <p>{location.platform}</p>
+                                </div>
+                              )}
+                              {location.vendor && (
+                                <div>
+                                  <p className="text-gray-600">تولیدکننده:</p>
+                                  <p>{location.vendor}</p>
+                                </div>
+                              )}
+                              {details.deviceMemory && (
+                                <div>
+                                  <p className="text-gray-600">حافظه دستگاه:</p>
+                                  <p>{details.deviceMemory} GB</p>
+                                </div>
+                              )}
+                              {details.hardwareConcurrency && (
+                                <div>
+                                  <p className="text-gray-600">هسته‌های CPU:</p>
+                                  <p>{details.hardwareConcurrency}</p>
+                                </div>
+                              )}
+                              {details.connectionType && (
+                                <div>
+                                  <p className="text-gray-600">نوع اتصال:</p>
+                                  <p>{details.connectionType}</p>
+                                </div>
+                              )}
+                              {details.effectiveType && (
+                                <div>
+                                  <p className="text-gray-600">نوع مؤثر:</p>
+                                  <p>{details.effectiveType}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {Object.keys(details.additionalData).length > 0 && (
+                              <div className="mt-4 pt-4 border-t">
+                                <p className="text-sm font-semibold text-gray-700 mb-2">
+                                  اطلاعات اضافی:
+                                </p>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  {Object.entries(details.additionalData).map(
+                                    ([key, value]) => (
+                                      <div key={key}>
+                                        <span className="text-gray-600">
+                                          {key}:
+                                        </span>
+                                        <span className="mr-2">
+                                          {String(value)}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
