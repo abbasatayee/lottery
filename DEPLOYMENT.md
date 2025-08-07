@@ -4,6 +4,8 @@
 
 Vercel doesn't recognize client-side routes by default. When you navigate to `/admin` directly, Vercel looks for a file at that path, but since it's a React Router route, it doesn't exist as a physical file.
 
+Additionally, there was a dependency conflict with `react-leaflet@5.0.0` requiring React 19, but the project uses React 18.
+
 ## Solution
 
 I've added the necessary configuration files to handle client-side routing properly.
@@ -25,7 +27,15 @@ I've added the necessary configuration files to handle client-side routing prope
    - Optimized build output
 
 4. **Updated `src/App.tsx`** - Router configuration
+
    - Added catch-all route (`*`) for unmatched paths
+
+5. **`.npmrc`** - NPM configuration
+
+   - Enables legacy peer deps for dependency resolution
+
+6. **Fixed Dependencies** - Resolved React version conflicts
+   - Downgraded `react-leaflet` to `^4.2.1` for React 18 compatibility
 
 ## Deployment Steps:
 
