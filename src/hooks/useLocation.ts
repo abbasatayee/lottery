@@ -32,49 +32,7 @@ export const useLocation = (): LocationHookReturn => {
   const [loading, setLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [isWatching, setIsWatching] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
   const watchIdRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    // Initialize Web Worker
-    workerRef.current = new Worker("/location-worker.js");
-
-    workerRef.current.onmessage = (event) => {
-      const { type, status } = event.data;
-
-      if (type === "LOCATION_STATUS") {
-        if (status === "denied" && hasPermission) {
-          // Permission was revoked mid-session
-          setHasPermission(false);
-          setLocation(null);
-          setIsWatching(false);
-          if (
-            watchIdRef.current &&
-            navigator.geolocation &&
-            navigator.geolocation.clearWatch
-          ) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
-            watchIdRef.current = null;
-          }
-          setError("دسترسی به مجوزها لغو شد. لطفاً صفحه را تازه کنید.");
-        }
-      }
-    };
-
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.postMessage({ type: "STOP_LOCATION_CHECK" });
-        workerRef.current.terminate();
-      }
-      if (
-        watchIdRef.current &&
-        navigator.geolocation &&
-        navigator.geolocation.clearWatch
-      ) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, [hasPermission]);
 
   const requestLocation = async (): Promise<void> => {
     setLoading(true);
@@ -213,11 +171,6 @@ export const useLocation = (): LocationHookReturn => {
 
       // Start continuous location watching
       startLocationWatching();
-
-      // Start monitoring location permission
-      if (workerRef.current) {
-        workerRef.current.postMessage({ type: "START_LOCATION_CHECK" });
-      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "خطا در دریافت مجوزها";
