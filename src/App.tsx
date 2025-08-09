@@ -21,29 +21,10 @@ function App() {
     getLocationTips,
   } = useLocation();
 
-  // Use the location API hook to send data manually
   const locationAPI = useLocationAPI(location);
 
-  // Set loading to false after hooks are initialized
   useEffect(() => {
     setIsLoading(false);
-  }, []);
-
-  // Register service worker
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js", {
-          scope: "/",
-          updateViaCache: "none",
-        })
-        .then((registration) => {
-          console.log("SW registered: ", registration);
-        })
-        .catch((registrationError) => {
-          console.log("SW registration failed: ", registrationError);
-        });
-    }
   }, []);
 
   // Load location tips

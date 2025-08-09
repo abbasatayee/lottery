@@ -1,7 +1,7 @@
 {
-  "name": "Persian Lottery PWA",
-  "short_name": "Lottery",
-  "description": "A Persian lottery game with location-based access",
+  "name": "قرعه کشی شانس",
+  "short_name": "قرعه کشی شانس",
+  "description": "قرعه کشی شانس با دسترسی موقعیتی",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1F2937",
