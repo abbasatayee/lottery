@@ -29,31 +29,46 @@ export const useVPN = (): VPNHookReturn => {
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
-    // Initialize Web Worker
-    workerRef.current = new Worker("/location-worker.js");
+    // Initialize Web Worker with error handling
+    try {
+      workerRef.current = new Worker("/location-worker.js");
 
-    workerRef.current.onmessage = (event) => {
-      const { type, vpnDetected, locationData, error } = event.data;
+      workerRef.current.onmessage = (event) => {
+        const { type, vpnDetected, locationData, error } = event.data;
 
-      console.log("Worker message received:", type, event.data);
+        console.log("Worker message received:", type, event.data);
 
-      if (type === "VPN_CHECK_RESULT") {
-        console.log("VPN check result:", { vpnDetected, locationData });
-        setVpnStatus({
-          isVPN: vpnDetected,
-          locationData: locationData || {},
-        });
+        if (type === "VPN_CHECK_RESULT") {
+          console.log("VPN check result:", { vpnDetected, locationData });
+          setVpnStatus({
+            isVPN: vpnDetected,
+            locationData: locationData || {},
+          });
+          setChecking(false);
+        } else if (type === "VPN_CHECK_ERROR") {
+          console.error("VPN check error from worker:", error);
+          setError(error);
+          setChecking(false);
+        }
+      };
+
+      workerRef.current.onerror = (error) => {
+        console.error("Worker error:", error);
+        setError("Worker initialization failed");
         setChecking(false);
-      } else if (type === "VPN_CHECK_ERROR") {
-        console.error("VPN check error from worker:", error);
-        setError(error);
-        setChecking(false);
-      }
-    };
+      };
+    } catch (workerError) {
+      console.error("Failed to initialize worker:", workerError);
+      setError("Failed to initialize VPN detection");
+    }
 
     return () => {
       if (workerRef.current) {
-        workerRef.current.terminate();
+        try {
+          workerRef.current.terminate();
+        } catch (error) {
+          console.error("Error terminating worker:", error);
+        }
       }
     };
   }, []);

