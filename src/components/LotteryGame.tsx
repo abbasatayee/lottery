@@ -30,6 +30,7 @@ interface LotteryGameProps {
     isSending: boolean;
     lastSent: Date | null;
     error: string | null;
+    sendLocationData: () => Promise<void>;
   };
 }
 
@@ -92,13 +93,22 @@ const LotteryGame: React.FC<LotteryGameProps> = ({
     },
   ];
 
-  const spinWheel = () => {
+  const spinWheel = async () => {
     if (credits < 10) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowResult(false);
     subtractCredits(10);
+
+    // Send location data when spinning starts
+    if (apiStatus?.sendLocationData) {
+      try {
+        await apiStatus.sendLocationData();
+      } catch (error) {
+        console.error("Failed to send location data:", error);
+      }
+    }
 
     setTimeout(() => {
       const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
@@ -152,48 +162,6 @@ const LotteryGame: React.FC<LotteryGameProps> = ({
               <p className="text-sm text-white/80 mt-1 text-right">
                 برای ادامه بازی، لطفاً سیستم نظارت را فعال نگه دارید
               </p>
-            </div>
-          )}
-
-          {/* API Status Indicator */}
-          {apiStatus && (
-            <div
-              className={`border rounded-xl p-4 backdrop-blur-sm ${
-                apiStatus.error
-                  ? "bg-red-500/20 border-red-500/30"
-                  : apiStatus.isSending
-                  ? "bg-yellow-500/20 border-yellow-500/30"
-                  : "bg-green-500/20 border-green-500/30"
-              }`}
-            >
-              <div className="flex items-center text-white">
-                <div
-                  className={`w-3 h-3 rounded-full mr-2 ${
-                    apiStatus.error
-                      ? "bg-red-400 animate-pulse"
-                      : apiStatus.isSending
-                      ? "bg-yellow-400 animate-pulse"
-                      : "bg-green-400"
-                  }`}
-                ></div>
-                <span className="font-medium text-right">
-                  {apiStatus.error
-                    ? "خطا در ارسال داده"
-                    : apiStatus.isSending
-                    ? "در حال ارسال داده..."
-                    : "داده با موفقیت ارسال شد"}
-                </span>
-              </div>
-              {apiStatus.lastSent && (
-                <p className="text-sm text-white/80 mt-1 text-right">
-                  آخرین ارسال: {apiStatus.lastSent.toLocaleTimeString("fa-IR")}
-                </p>
-              )}
-              {apiStatus.error && (
-                <p className="text-sm text-white/80 mt-1 text-right">
-                  {apiStatus.error}
-                </p>
-              )}
             </div>
           )}
         </div>

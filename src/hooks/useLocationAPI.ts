@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 interface LocationData {
   latitude: number;
@@ -29,13 +29,12 @@ interface UseLocationAPIReturn {
   isSending: boolean;
   lastSent: Date | null;
   error: string | null;
+  sendLocationData: () => Promise<void>;
 }
 
 export const useLocationAPI = (
-  location: LocationData | null,
-  isWatching: boolean
+  location: LocationData | null
 ): UseLocationAPIReturn => {
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,35 +129,10 @@ export const useLocationAPI = (
     }
   }, [location, getAdditionalData]);
 
-  useEffect(() => {
-    // Clear existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    // Start sending data if location is available and watching is active
-    if (location && isWatching) {
-      // Send immediately
-      sendLocationData();
-
-      // Then set up interval for every 5 seconds
-      intervalRef.current = setInterval(() => {
-        sendLocationData();
-      }, 5000);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [location, isWatching, sendLocationData]);
-
   return {
     isSending,
     lastSent,
     error,
+    sendLocationData,
   };
 };

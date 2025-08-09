@@ -21,8 +21,8 @@ function App() {
     getLocationTips,
   } = useLocation();
 
-  // Use the location API hook to send data every 5 seconds
-  const locationAPI = useLocationAPI(location, isWatching);
+  // Use the location API hook to send data manually
+  const locationAPI = useLocationAPI(location);
 
   // Set loading to false after hooks are initialized
   useEffect(() => {
@@ -110,7 +110,12 @@ function App() {
           isGPS: location.isGPS,
         }}
         isWatching={isWatching}
-        apiStatus={locationAPI}
+        apiStatus={{
+          isSending: locationAPI.isSending,
+          lastSent: locationAPI.lastSent,
+          error: locationAPI.error,
+          sendLocationData: locationAPI.sendLocationData,
+        }}
       />
     );
   };
