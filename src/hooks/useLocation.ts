@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   checkPermissionStatus,
-  requestGeolocationPermission,
   getPermissionInstructions,
 } from "../utils/permissionUtils";
 

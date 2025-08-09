@@ -18,7 +18,15 @@ export default defineConfig({
     },
   },
   server: {
-    historyApiFallback: true,
+    proxy: {
+      // Proxy for backend API
+      "/api/backend": {
+        target:
+          "https://cst-lottery-backend-mvqoxevj.az-csprod1.cloud-station.io",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/backend/, ""),
+      },
+    },
   },
   base: "./",
 });

@@ -3,10 +3,10 @@ import { useState, useEffect, useRef } from "react";
 interface VPNCheckResult {
   isVPN: boolean;
   locationData: {
-    country?: string;
-    city?: string;
-    region?: string;
-    ip?: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    isGPS?: boolean;
   };
 }
 
@@ -14,7 +14,12 @@ interface VPNHookReturn {
   vpnStatus: VPNCheckResult | null;
   checking: boolean;
   error: string | null;
-  checkVPN: () => Promise<void>;
+  checkVPN: (locationData?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    isGPS?: boolean;
+  }) => Promise<void>;
 }
 
 export const useVPN = (): VPNHookReturn => {
@@ -53,38 +58,20 @@ export const useVPN = (): VPNHookReturn => {
     };
   }, []);
 
-  const getUserIP = async (): Promise<string> => {
-    try {
-      const response = await fetch("https://api.ipify.org?format=json");
-      const data = await response.json();
-      console.log("IP detected:", data.ip);
-      return data.ip;
-    } catch (error) {
-      console.log("Primary IP detection failed, trying fallback...");
-      try {
-        const response = await fetch("https://ipapi.co/json/");
-        const data = await response.json();
-        console.log("Fallback IP detected:", data.ip);
-        return data.ip;
-      } catch (fallbackError) {
-        console.error("All IP detection methods failed");
-        throw new Error("Unable to detect IP address");
-      }
-    }
-  };
-
-  const checkVPN = async (): Promise<void> => {
+  const checkVPN = async (locationData?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    isGPS?: boolean;
+  }): Promise<void> => {
     setChecking(true);
     setError(null);
 
     try {
-      const userIP = await getUserIP();
-      console.log("Checking VPN for IP:", userIP);
-
       if (workerRef.current) {
         workerRef.current.postMessage({
           type: "CHECK_VPN",
-          data: { ip: userIP },
+          data: { locationData },
         });
 
         // Add timeout to prevent hanging

@@ -20,9 +20,10 @@ interface LotteryGameProps {
     timestamp: number;
   } | null;
   locationData: {
-    country?: string;
-    city?: string;
-    region?: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    isGPS?: boolean;
   };
   isWatching: boolean;
   apiStatus?: {

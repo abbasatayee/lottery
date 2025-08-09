@@ -23,6 +23,7 @@ function App() {
     isWatching,
     getLocationTips,
   } = useLocation();
+
   const {
     vpnStatus,
     checking: vpnChecking,
@@ -110,7 +111,16 @@ function App() {
   };
 
   const handleVPNCheck = async () => {
-    await checkVPN();
+    if (location) {
+      await checkVPN({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+        isGPS: location.isGPS,
+      });
+    } else {
+      await checkVPN();
+    }
   };
 
   // Main lottery app component
